@@ -1,0 +1,2 @@
+Address = Location Counter LOCTR
+atoi = ASCII to Integer
