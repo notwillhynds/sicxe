@@ -9,45 +9,46 @@ Line  	Address 	Label   	OPCODE  	OPERAND 	Comment
 35    	100F	JSUB    	WRREC   	        
 40    	1012	J       	CLOOP   	        
 45    	1015	ENDFIL  	LDA     	EOF     
-50    	1018	STA     	BUFFER  	        
-55    	101B	LDA     	THREE   	        
-60    	101E	STA     	LENGTH  	        
-65    	1021	JSUB    	WRREC   	        
-70    	1024	LDL     	RETADR  	        
-75    	1027	RSUB    	        	        
-80    	102A	EOF     	BYTE    	C'EOF'  
-85    	102D	THREE   	WORD    	3       
-90    	1030	ZERO    	WORD    	0       
-95    	1033	RETADR  	RESW    	1       
-100   	1036	LENGTH  	RESW    	1       
-105   	1039	BUFFER  	RESB    	4096    
-110   	    	        	        	        	.
-115   	    	        	        	        	.      SUBROUTINE TO READ RECORD INTO BUFFER
-120   	    	        	        	        	.
-125   	2039	RDREC   	LDX     	ZERO    
-130   	203C	LDA     	ZERO    	        
-135   	203F	RLOOP   	TD      	INPUT   
-140   	2042	JEQ     	RLOOP   	        
-145   	2045	RD      	INPUT   	        
-150   	2048	COMP    	ZERO    	        
-155   	204B	JEQ     	EXIT    	        
-160   	204E	STCH    	BUFFER,X	        
-165   	2051	TIX     	MAXLEN  	        
-170   	2054	JLT     	RLOOP   	        
-175   	2057	EXIT    	STX     	LENGTH  
-180   	205A	RSUB    	        	        
-185   	205D	INPUT   	BYTE    	X'F1'   
-190   	205E	MAXLEN  	WORD    	4096    
-195   	    	        	        	        	.
-200   	    	        	        	        	.      SUBROUTINE TO WRITE RECORD FROM BUFFER
-205   	    	        	        	        	.
-210   	2061	WRREC   	LDX     	ZERO    
-215   	2064	WLOOP   	TD      	OUTPUT  
-220   	2067	JEQ     	WLOOP   	        
-225   	206A	LDCH    	BUFFER,X	        
-230   	206D	WD      	OUTPUT  	        
-235   	2070	TIX     	LENGTH  	        
-240   	2073	JLT     	WLOOP   	        
-245   	2076	RSUB    	        	        
-250   	2079	OUTPUT  	BYTE    	X'05'   
-255   	207A	END     	FIRST   	        
+50    	1018	ENDFIL  	LDA     	EOF     
+55    	101B	STA     	BUFFER  	        
+60    	101E	LDA     	THREE   	        
+65    	1021	STA     	LENGTH  	        
+70    	1024	JSUB    	WRREC   	        
+75    	1027	LDL     	RETADR  	        
+80    	102A	RSUB    	        	        
+85    	102D	EOF     	BYTE    	C'EOF'  
+90    	1030	THREE   	WORD    	3       
+95    	1033	ZERO    	WORD    	0       
+100   	1036	RETADR  	RESW    	1       
+105   	1039	LENGTH  	RESW    	1       
+110   	103C	BUFFER  	RESB    	4096    
+115   	    	        	        	        	.
+120   	    	        	        	        	.      SUBROUTINE TO READ RECORD INTO BUFFER
+125   	    	        	        	        	.
+130   	203C	RDREC   	LDX     	ZERO    
+135   	203F	LDA     	ZERO    	        
+140   	2042	RLOOP   	TD      	INPUT   
+145   	2045	JEQ     	RLOOP   	        
+150   	2048	RD      	INPUT   	        
+155   	204B	COMP    	ZERO    	        
+160   	204E	JEQ     	EXIT    	        
+165   	2051	STCH    	BUFFER,X	        
+170   	2054	TIX     	MAXLEN  	        
+175   	2057	JLT     	RLOOP   	        
+180   	205A	EXIT    	STX     	LENGTH  
+185   	205D	RSUB    	        	        
+190   	2060	INPUT   	BYTE    	X'F1'   
+195   	2061	MAXLEN  	WORD    	4096    
+200   	    	        	        	        	.
+205   	    	        	        	        	.      SUBROUTINE TO WRITE RECORD FROM BUFFER
+210   	    	        	        	        	.
+215   	2064	WRREC   	LDX     	ZERO    
+220   	2067	WLOOP   	TD      	OUTPUT  
+225   	206A	JEQ     	WLOOP   	        
+230   	206D	LDCH    	BUFFER,X	        
+235   	2070	WD      	OUTPUT  	        
+240   	2073	TIX     	LENGTH  	        
+245   	2076	JLT     	WLOOP   	        
+250   	2079	RSUB    	        	        
+255   	207C	OUTPUT  	BYTE    	X'05'   
+260   	207D	END     	FIRST   	        

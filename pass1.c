@@ -18,14 +18,30 @@ struct Symbol {
 struct Symbol SYMTAB[MAX_SYMBOLS];
 int symCount = 0;
 
+int searchSymTab (const char *label) {
+    for(int i = 0; i < symCount; i++) {
+        if(strcmp(SYMTAB[i].label, label) == 0) {
+        return i;
+        }
+}
+return -1;
+}
+
 // Function to add symbol to SYMTAB
-void addSymbol(const char *label, int address) {
-    if (symCount < MAX_SYMBOLS && strlen(label) > 0) {
+int addSymbol(const char *label, int address) {
+    if (searchSymTab(label) != -1) {
+        printf("Error Duplicate Symbol Found '%s'\n",label);
+        return 0;
+        }
+    else if(symCount < MAX_SYMBOLS && strlen(label) > 0 ) {
         strcpy(SYMTAB[symCount].label, label);
         SYMTAB[symCount].address = address;
         symCount++;
         printf("Added symbol: %s at address: %04X\n", label, address);
+        return 1;
     }
+
+    return 0;
 }
 
 void pass1(const char *inputFile, const char *intermediateFile) {
@@ -131,17 +147,17 @@ void pass1(const char *inputFile, const char *intermediateFile) {
             }
         }
     }
-
     // Print program length
     printf("\nProgram length: %04X\n", LOCCTR - startingAddr);
-
-    // Print symbol table
-    printf("\nSymbol Table:\n");
-    printf("Label\tAddress\n");
-    printf("---------------\n");
+    // Write symbol table to file
+    FILE* symtabFile = fopen("symtab.txt","w");
+    fprintf(symtabFile,"Label\tAddress\n");
+    fprintf(symtabFile,"---------------\n");
     for (int i = 0; i < symCount; i++) {
-        printf("%-6s\t%04X\n", SYMTAB[i].label, SYMTAB[i].address);
+        fprintf(symtabFile, "%-6s\t%04X\n", SYMTAB[i].label, SYMTAB[i].address);
     }
+    fclose(symtabFile);
+
 
     fclose(input);
     fclose(intermediate);
