@@ -3,6 +3,8 @@
 #include "optab.h"
 #include "optab.h"
 
+#define OPTAB_LENGTH 26
+
 OPCODE OPTAB[] = {
     {"ADD",  0x18},
     {"AND",  0x40},
@@ -31,3 +33,13 @@ OPCODE OPTAB[] = {
     {"TIX",  0x2C},
     {"WD",   0xDC}
 };
+
+
+int searchOpTab(const char* opcode) {
+    for(int i = 0; i < OPTAB_LENGTH; i++) {
+        if(strcmp(opcode, OPTAB[i].mnemonic) == 0) {
+            return 3;
+        }
+    }
+    return -1;
+}

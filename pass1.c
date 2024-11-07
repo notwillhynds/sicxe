@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "optab.h"
+#include "optable.c"
 
 #define MAX_LINE_LENGTH 100
 #define MAX_LABEL_LENGTH 20
@@ -8,7 +10,7 @@
 #define MAX_OPERAND_LENGTH 20
 #define MAX_SYMBOLS 100
 
-// Symbol table structure
+// Symbol table struct
 struct Symbol {
     char label[MAX_LABEL_LENGTH];
     int address;
@@ -44,6 +46,8 @@ int addSymbol(const char *label, int address) {
     return 0;
 }
 
+
+
 void pass1(const char *inputFile, const char *intermediateFile) {
     FILE *input = fopen(inputFile, "r");
     FILE *intermediate = fopen(intermediateFile, "w");
@@ -72,7 +76,24 @@ void pass1(const char *inputFile, const char *intermediateFile) {
         line[strcspn(line, "\n")] = 0;
         
         // Parse the line
-        sscanf(line, "%s %s %s", label, opcode, operand);
+        int numFields = sscanf(line, "%s %s %s", label, opcode, operand);
+
+        // Handle cases based on the number of fields parsed
+        if (numFields == 3) {
+            // Line has label, opcode, and operand
+        } else if (numFields == 2) {
+            // Line has opcode and operand, no label
+            strcpy(opcode, label);  // Move opcode to correct variable
+            strcpy(operand, opcode);
+            label[0] = '\0';  // Clear label
+        } else if (numFields == 1) {
+            // Line has only opcode, no label or operand
+            strcpy(opcode, label);  // Move opcode to correct variable
+            label[0] = '\0';  // Clear label
+            operand[0] = '\0';  // Clear operand
+        } else {
+            // Handle error or comment line
+        }
 
         // Check if OPCODE is START
         if (strcmp(opcode, "START") == 0) {
@@ -80,7 +101,7 @@ void pass1(const char *inputFile, const char *intermediateFile) {
             startingAddr = LOCCTR;
             
             // Add first label to symbol table if present
-            if (strlen(label) > 0) {
+            if (strlen(label) > 0 && searchSymTab(label) == -1) {
                 addSymbol(label, LOCCTR);
             }
             
@@ -100,8 +121,17 @@ void pass1(const char *inputFile, const char *intermediateFile) {
             // Clear previous values
             label[0] = opcode[0] = operand[0] = '\0';
             
-            // Parse the line
-            sscanf(line, "%s %s %s", label, opcode, operand);
+            // Check if the line starts with a space (indicating no label)
+            if (line[0] == ' ' || line[0] == '\t') {
+                // No label, parse opcode and operand
+                sscanf(line, "%s %s", opcode, operand);
+            } else {
+                // Parse label, opcode, and operand
+                sscanf(line, "%s %s %s", label, opcode, operand);
+            }
+
+            // Debugging output to verify parsing
+            printf("Parsed line: Label='%s', Opcode='%s', Operand='%s'\n", label, opcode, operand);
 
             // Skip comment lines
             if (line[0] == '.') {
@@ -115,12 +145,16 @@ void pass1(const char *inputFile, const char *intermediateFile) {
                     lineNumber, LOCCTR, label, opcode, operand);
 
             // Add label to symbol table if present (only if it's in the leftmost column)
-            if (strlen(label) > 0 && line[0] != ' ') {  // Check if label starts at beginning of line
+            if (strlen(label) > 0 && line[0] != ' ' && searchSymTab(label) == -1) {  // Check if label starts at beginning of line
                 addSymbol(label, LOCCTR);
             }
 
             // Update LOCCTR based on instruction type
-            if (strcmp(opcode, "WORD") == 0) {
+            if(searchOpTab(opcode) == 3) {
+                printf("Opcode %s Found at: %04X\n", opcode, LOCCTR);
+                LOCCTR += 3;  // Standard instruction length
+            }
+            else if (strcmp(opcode, "WORD") == 0) {
                 LOCCTR += 3;
             }
             else if (strcmp(opcode, "RESW") == 0) {
@@ -137,9 +171,7 @@ void pass1(const char *inputFile, const char *intermediateFile) {
                     LOCCTR += (strlen(operand) - 3) / 2;  // Subtract 3 for X''
                 }
             }
-            else {
-                LOCCTR += 3;  // Standard instruction length
-            }
+
 
             // Check for END
             if (strcmp(opcode, "END") == 0) {
