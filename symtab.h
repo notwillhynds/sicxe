@@ -12,4 +12,5 @@ typedef struct SymTab
 
 int loadSymbolTable(const char* symTabFile, SYMBOL* symtab, int* symCount);
 
+
 #endif 

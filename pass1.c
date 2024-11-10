@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "tabels.h"
+#include "tables.h"
 
 #define MAX_LINE_LENGTH 100
 #define MAX_LABEL_LENGTH 20

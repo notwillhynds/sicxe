@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "tabels.h"
+#include "tables.h"
 
 #define OPTAB_LENGTH 26
 
