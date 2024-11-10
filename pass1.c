@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "optab.h"
-#include "optable.c"
+#include "tabels.h"
 
 #define MAX_LINE_LENGTH 100
 #define MAX_LABEL_LENGTH 20
@@ -65,10 +64,10 @@ void pass1(const char *inputFile, const char *intermediateFile) {
     int startingAddr = 0;
     int lineNumber = 5;
 
-    // Write header to intermediate file
-    fprintf(intermediate, "%-6s\t%-8s\t%-8s\t%-8s\t%-8s\t%s\n",
-            "Line", "Address", "Label", "OPCODE", "OPERAND", "Comment");
-    fprintf(intermediate, "------------------------------------------------------------------------------\n");
+    // // Write header to intermediate file
+    // fprintf(intermediate, "%-6s\t%-8s\t%-8s\t%-8s\t%-8s\t%s\n",
+    //         "Line", "Address", "Label", "OPCODE", "OPERAND", "Comment");
+    // fprintf(intermediate, "------------------------------------------------------------------------------\n");
 
     // Read first line
     if (fgets(line, MAX_LINE_LENGTH, input)) {
@@ -158,10 +157,10 @@ void pass1(const char *inputFile, const char *intermediateFile) {
                 LOCCTR += 3;
             }
             else if (strcmp(opcode, "RESW") == 0) {
-                LOCCTR += 3 * atoi(operand);
+                LOCCTR += 3 * strtol(operand, NULL, 10);
             }
             else if (strcmp(opcode, "RESB") == 0) {
-                LOCCTR += atoi(operand);
+                LOCCTR += (int)strtol(operand, NULL, 10);
             }
             else if (strcmp(opcode, "BYTE") == 0) {
                 if (operand[0] == 'C') {
@@ -183,8 +182,6 @@ void pass1(const char *inputFile, const char *intermediateFile) {
     printf("\nProgram length: %04X\n", LOCCTR - startingAddr);
     // Write symbol table to file
     FILE* symtabFile = fopen("symtab.txt","w");
-    fprintf(symtabFile,"Label\tAddress\n");
-    fprintf(symtabFile,"---------------\n");
     for (int i = 0; i < symCount; i++) {
         fprintf(symtabFile, "%-6s\t%04X\n", SYMTAB[i].label, SYMTAB[i].address);
     }

@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <string.h>
-#include "optab.h"
-#include "optab.h"
+#include "tabels.h"
 
 #define OPTAB_LENGTH 26
 
+//Operand Table For SIC/XE
 OPCODE OPTAB[] = {
     {"ADD",  0x18},
     {"AND",  0x40},
@@ -34,7 +34,7 @@ OPCODE OPTAB[] = {
     {"WD",   0xDC}
 };
 
-
+//Search Functionality
 int searchOpTab(const char* opcode) {
     for(int i = 0; i < OPTAB_LENGTH; i++) {
         if(strcmp(opcode, OPTAB[i].mnemonic) == 0) {
