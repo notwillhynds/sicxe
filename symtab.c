@@ -20,4 +20,14 @@ int loadSymbolTable(const char* symTabFile, SYMBOL* symtab, int* symcount) {
     fclose(file);
     return 1;
 }
+int getSymbolAddress(const char* label, SYMBOL* symtab, int* symCount) {
+    for(int i = 0; i < *symCount; i++) {
+        if(strcmp(symtab[i].label, label) == 0) {
+            return symtab[i].address;
+        }
+    }
+    return 0xFFFF;
+}
+
+
 

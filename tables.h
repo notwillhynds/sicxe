@@ -2,6 +2,7 @@
 #define OPCODE_H
 
 int searchOpTab(const char* opcode);
+unsigned int getOpcode(const char* mnemonic);
 
 typedef struct OpCode
 {

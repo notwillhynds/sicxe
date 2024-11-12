@@ -34,6 +34,16 @@ OPCODE OPTAB[] = {
     {"WD",   0xDC}
 };
 
+unsigned int getOpcode(const char* mnemonic) {
+    for(int i = 0; i < OPTAB_LENGTH; i++) {
+        if(strcmp(OPTAB[i].mnemonic, mnemonic) == 0) {
+            return OPTAB[i].opcode;
+        }
+    }
+    printf("Error: Opcode not found for %s\n", mnemonic);
+    return 0xFF;  // Return invalid opcode if not found
+}
+
 //Search Functionality
 int searchOpTab(const char* opcode) {
     for(int i = 0; i < OPTAB_LENGTH; i++) {

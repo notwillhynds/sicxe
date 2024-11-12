@@ -7,10 +7,10 @@
 typedef struct SymTab 
 {
     char label[MAX_LABEL_LENGTH];
-    int address;
+    unsigned int address;
 } SYMBOL;
 
 int loadSymbolTable(const char* symTabFile, SYMBOL* symtab, int* symCount);
-
+int getSymbolAddress(const char* label, SYMBOL* symtab, int* symCount);
 
 #endif 
