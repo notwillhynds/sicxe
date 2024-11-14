@@ -1,3 +1,4 @@
 Address = Location Counter LOCTR
 atoi = ASCII to Integer
 To get object code, look for address in symbol table and opcode table
+Pad with leading zeros %06X

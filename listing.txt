@@ -1,4 +1,3 @@
-1000    COPY     START     1000    
 1000    FIRST    STL       RETADR   141033
 1003    CLOOP    JSUB      RDREC    482039
 1006             LDA       LENGTH   001036
@@ -16,9 +15,6 @@
 102A    EOF      BYTE      C'EOF'   454F46
 102D    THREE    WORD      3        000003
 1030    ZERO     WORD      0        000000
-1033    RETADR   RESW      1       
-1036    LENGTH   RESW      1       
-1039    BUFFER   RESB      4096    
 2039    RDREC    LDX       ZERO     041030
 203C             LDA       ZERO     001030
 203F    RLOOP    TD        INPUT    E0205D
@@ -41,5 +37,4 @@
 2070             TIX       LENGTH   2C1036
 2073             JLT       WLOOP    382064
 2076             RSUB               4C0000
-2079    OUTPUT   BYTE      X'05'    05
-207A             END       FIRST   
+2079    OUTPUT   BYTE      X'05'    5

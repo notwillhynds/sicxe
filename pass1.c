@@ -147,6 +147,7 @@ void pass1(const char *inputFile, const char *intermediateFile) {
             }
 
             // Write to intermediate file
+            
             fprintf(intermediate, "%-6d\t%04X\t%-8s\t%-8s\t%-8s\n", 
                     lineNumber, LOCCTR, label, opcode, operand);
 
@@ -193,7 +194,6 @@ void pass1(const char *inputFile, const char *intermediateFile) {
         fprintf(symtabFile, "%-6s\t%04X\n", SYMTAB[i].label, SYMTAB[i].address);
     }
     fclose(symtabFile);
-
 
     fclose(input);
     fclose(intermediate);

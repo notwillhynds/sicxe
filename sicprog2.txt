@@ -1,0 +1,12 @@
+ADDER  START  1000
+FIRST  LDA    NUM      . Load the number
+       ADD    FIVE     . Add 5 to it
+       STA    RESULT   . Store the result
+       LDA    RESULT   . Load result for output
+       WD     DEVICE   . Write to output device
+       RSUB            . Return to OS
+NUM    WORD   3        . Number to add to
+FIVE   WORD   5        . Constant value 5
+RESULT RESW   1        . Space for result
+DEVICE BYTE   X'05'    . Output device code
+       END    FIRST
