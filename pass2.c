@@ -39,7 +39,7 @@ void pass2(char* intermediate) {
     fprintf(object, "H                                \n");
     
     //Variables for text record handling
-    int recordLength = 0;  // Length in bytes (each instruction is 3 bytes)
+    int recordLength = 0;  // Length in bytes
     char recordBuffer[140] = "";  // Buffer for hex chars and separators
     int currentTextStart = 0;
 
@@ -120,134 +120,80 @@ void pass2(char* intermediate) {
          //Generate Object Codes
         if(strcmp(opcode, "RSUB") == 0) {
             objcode = 0x4C0000;
-            
-            if(codeLength + 3 <= 30 && objCodeSize + 3 < objCodeCapacity) {
-                objectFCode[objCodeSize] = 0x4C;     
-                objectFCode[objCodeSize + 1] = 0x00; 
-                objectFCode[objCodeSize + 2] = 0x00; 
-                objCodeSize += 3;
-                codeLength += 3;
-            }
+            codeLength = 3;
         }
         else if(searchOpTab(opcode) == 3) {
             unsigned int opcodeValue = getOpcode(opcode);
-            unsigned int symbolAddr;
-
-            // Check if operand has indexed addressing mode
-            char* indexedOperand = strchr(operand, ',');
-            if(indexedOperand != NULL) {
-                // Remove the ",X" part from the operand
-                *indexedOperand = '\0';
-                symbolAddr = getSymbolAddress(operand, symtab, &symCount);
-                // Set the indexed addressing flag in the object code
-                objcode = (opcodeValue << 16) | (symbolAddr & 0xFFFF) | 0x8000;
-                
-                // Store in object code array if within limits
-                if(codeLength + 3 <= 30 && objCodeSize + 3 < objCodeCapacity) {
-                    objectFCode[objCodeSize] = (objcode >> 16) & 0xFF;     // First byte (opcode)
-                    objectFCode[objCodeSize + 1] = (objcode >> 8) & 0xFF;  // Second byte (addr high)
-                    objectFCode[objCodeSize + 2] = objcode & 0xFF;         // Third byte (addr low)
-                    objCodeSize += 3;
-                    codeLength += 3;
-                }
-            }
-            else {
-                symbolAddr = getSymbolAddress(operand, symtab, &symCount);
-                if(symbolAddr != 0xFFFF) {
-                    objcode = (opcodeValue << 16) | (symbolAddr & 0xFFFF);
-                    
-                    // Store in object code array if within limits
-                    if(codeLength + 3 <= 30 && objCodeSize + 3 < objCodeCapacity) {
-                        objectFCode[objCodeSize] = (objcode >> 16) & 0xFF;     // First byte (opcode)
-                        objectFCode[objCodeSize + 1] = (objcode >> 8) & 0xFF;  // Second byte (addr high)
-                        objectFCode[objCodeSize + 2] = objcode & 0xFF;         // Third byte (addr low)
-                        objCodeSize += 3;
-                        codeLength += 3;
-                    }
-                }
-            }
+            unsigned int symbolAddr = getSymbolAddress(operand, symtab, &symCount);
+            objcode = (opcodeValue << 16) | (symbolAddr & 0xFFFF);
+            codeLength = 3;
         }
         else if(strcmp(opcode, "BYTE") == 0) {
             if(operand[0] == 'C') {
-                // Handle character constant (keep leading zeros)
                 objcode = 0;
                 for(int i = 2; operand[i] != '\''; i++) {
                     objcode = (objcode << 8) | operand[i];
                 }
+                codeLength = strlen(operand) - 3;  // Length of characters
             }
             else if(operand[0] == 'X') {
-                // Handle hex constant - extract just the hex value without leading zeros
-                char hex[3];
-                unsigned int hexValue = 0;  // Declare and initialize
-                strncpy(hex, &operand[2], 2);  // Copy just the hex digits
-                hex[2] = '\0';
-                sscanf(hex, "%x", &hexValue);  // Use %x to read hex without leading zeros
-                objcode = hexValue;
+                sscanf(&operand[2], "%6X", &objcode);
+                codeLength = 1;  // Hex constant is 1 byte
+                // Restrict hex constants to two bytes
+                objcode &= 0xFFFF;  // Mask to ensure only two bytes
             }
         }
         else if(strcmp(opcode, "WORD") == 0) {
             objcode = atoi(operand);
-                                if(codeLength + 3 <= 30 && objCodeSize + 3 < objCodeCapacity) {
-                        objectFCode[objCodeSize] = (objcode >> 16) & 0xFF;     // First byte (opcode)
-                        objectFCode[objCodeSize + 1] = (objcode >> 8) & 0xFF;  // Second byte (addr high)
-                        objectFCode[objCodeSize + 2] = objcode & 0xFF;         // Third byte (addr low)
-                        objCodeSize += 3;
-                        codeLength += 3;
-                    }
-        }
-        else {
-            objcode = 0;  // For START, END, RESW, RESB
+            codeLength = 3;
         }
 
-        // When you generate object code, handle text records
-        if (strcmp(opcode, "RESW") != 0 && strcmp(opcode, "RESB") != 0) {
-            // For SIC, all instructions are 3 bytes
-            int objCodeSize = 3;
-
-            // Start new record if:
-            // 1. Current record would exceed 30 bytes
-            // 2. Hit RESW/RESB
-            if (recordLength + objCodeSize > 30) {
-                // Write current record
-                if (recordLength > 0) {
-                    fprintf(object, "T%06X%02X%s\n", currentTextStart, recordLength, recordBuffer);
-                    recordBuffer[0] = '\0';
-                    recordLength = 0;
-                }
-                // Start new record at current address
-                currentTextStart = (int)strtol(address, NULL, 16);
-            }
-
-            // Add current object code to record
-            if (recordLength == 0) {
-                currentTextStart = (int)strtol(address, NULL, 16);
-                if (strcmp(opcode, "BYTE") == 0 && operand[0] == 'X') {
-                    sprintf(recordBuffer, "%X", objcode);  // Hex constants without leading zeros
-                } else if (strcmp(opcode, "WORD") == 0 && objcode == 5) {
-                    sprintf(recordBuffer, "05");  // Special case for WORD 5
-                } else {
-                    sprintf(recordBuffer, "%06X", objcode);  // Everything else with leading zeros
-                }
-            } else {
-                char objCodeStr[8];
-                if (strcmp(opcode, "BYTE") == 0 && operand[0] == 'X') {
-                    sprintf(objCodeStr, "^%X", objcode);  // Hex constants without leading zeros
-                } else if (strcmp(opcode, "WORD") == 0 && objcode == 5) {
-                    sprintf(objCodeStr, "^05");  // Special case for WORD 5
-                } else {
-                    sprintf(objCodeStr, "^%06X", objcode);  // Everything else with leading zeros
-                }
-                strcat(recordBuffer, objCodeStr);
-            }
-            recordLength += 3;
-        } else {
-            // Write current record if we hit RESW/RESB
+        // Handle text records
+        if (recordLength + codeLength > MAX_TEXT_RECORD_LENGTH) {
+            // Write current record
             if (recordLength > 0) {
                 fprintf(object, "T%06X%02X%s\n", currentTextStart, recordLength, recordBuffer);
                 recordBuffer[0] = '\0';
                 recordLength = 0;
             }
+            // Start new record at current address
+            currentTextStart = (int)strtol(address, NULL, 16);
         }
+
+        // Add current object code to record
+        if (recordLength == 0) {
+            currentTextStart = (int)strtol(address, NULL, 16);
+            if(strcmp(opcode, "BYTE") == 0 && operand[0] == 'X') {
+                // Extract everything between the quotes
+                char *start = strchr(operand, '\'') + 1;
+                char *end = strrchr(operand, '\'');
+                int len = end - start;
+                char *hexStr = malloc(len + 1);
+                strncpy(hexStr, start, len);
+                hexStr[len] = '\0';
+                sprintf(recordBuffer, "%s", hexStr);
+                free(hexStr);
+            } else {
+                sprintf(recordBuffer, "%06X", objcode);
+            }
+        } else {
+            char objCodeStr[20];  // Increased buffer size
+            if(strcmp(opcode, "BYTE") == 0 && operand[0] == 'X') {
+                // Extract everything between the quotes
+                char *start = strchr(operand, '\'') + 1;
+                char *end = strrchr(operand, '\'');
+                int len = end - start;
+                char *hexStr = malloc(len + 1);
+                strncpy(hexStr, start, len);
+                hexStr[len] = '\0';
+                sprintf(objCodeStr, "^%s", hexStr);
+                free(hexStr);
+            } else {
+                sprintf(objCodeStr, "^%06X", objcode);
+            }
+            strcat(recordBuffer, objCodeStr);
+        }
+        recordLength += codeLength;
 
         lineCount++;
         if(strcmp(opcode, "BYTE") == 0 && operand[0] == 'X') {
