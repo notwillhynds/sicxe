@@ -108,11 +108,11 @@ void pass2(char* intermediate) {
             strcmp(opcode, "RESB") == 0) {
             // Write current record if we have one
             if (recordLength > 0) {
-                fprintf(object, "T%06X%02X%s\n", currentTextStart, recordLength, recordBuffer);
+                fprintf(object, "T%06X^%02X%s\n", currentTextStart, recordLength, recordBuffer);
                 recordBuffer[0] = '\0';
                 recordLength = 0;
             }
-            continue;  // Skip to next instruction
+              // Skip to next instruction
         }
 
         int codeLength = 0;
@@ -122,9 +122,39 @@ void pass2(char* intermediate) {
             objcode = 0x4C0000;
             codeLength = 3;
         }
-        else if(searchOpTab(opcode) == 3) {
+        else if(searchOpTab(opcode) == 3) { // Assuming searchOpTab returns format type
             unsigned int opcodeValue = getOpcode(opcode);
-            unsigned int symbolAddr = getSymbolAddress(operand, symtab, &symCount);
+            char symbol[50];
+            bool indexed = false;
+
+            // Check for indexed addressing ',X'
+            char *comma = strchr(operand, ',');
+            if(comma != NULL) {
+                // Extract symbol name before ','
+                int len = comma - operand;
+                if(len >= sizeof(symbol)) {
+                    printf("Symbol name too long: %s\n", operand);
+                    exit(1);
+                }
+                strncpy(symbol, operand, len);
+                symbol[len] = '\0';
+                indexed = true;
+            }
+            else {
+                strcpy(symbol, operand);
+            }
+
+            unsigned int symbolAddr = getSymbolAddress(symbol, symtab, &symCount);
+            if(symbolAddr == (unsigned int)-1) { // Assuming getSymbolAddress returns -1 for undefined symbols
+                printf("Undefined symbol: %s\n", symbol);
+                // Handle undefined symbol appropriately (e.g., exit or assign a default value)
+                exit(1);
+            }
+
+            if(indexed) {
+                symbolAddr |= 0x8000; // Set the indexed addressing bit (bit 15)
+            }
+
             objcode = (opcodeValue << 16) | (symbolAddr & 0xFFFF);
             codeLength = 3;
         }
@@ -152,7 +182,7 @@ void pass2(char* intermediate) {
         if (recordLength + codeLength > MAX_TEXT_RECORD_LENGTH) {
             // Write current record
             if (recordLength > 0) {
-                fprintf(object, "T%06X%02X%s\n", currentTextStart, recordLength, recordBuffer);
+                fprintf(object, "T%06X^%02X%s\n", currentTextStart, recordLength, recordBuffer);
                 recordBuffer[0] = '\0';
                 recordLength = 0;
             }
@@ -171,10 +201,10 @@ void pass2(char* intermediate) {
                 char *hexStr = malloc(len + 1);
                 strncpy(hexStr, start, len);
                 hexStr[len] = '\0';
-                sprintf(recordBuffer, "%s", hexStr);
+                sprintf(recordBuffer, "^%s", hexStr);
                 free(hexStr);
             } else {
-                sprintf(recordBuffer, "%06X", objcode);
+                sprintf(recordBuffer, "^%06X", objcode);
             }
         } else {
             char objCodeStr[20];  // Increased buffer size
@@ -198,9 +228,9 @@ void pass2(char* intermediate) {
         lineCount++;
         if(strcmp(opcode, "BYTE") == 0 && operand[0] == 'X') {
             // For hex BYTE constants, don't use leading zeros
-            printf("Line: %d Address: %-6s Label: %-8s Opcode: %-8s Operand: %-8s Obj Code: %X\n",
+            printf("Line: %d Address: %-6s Label: %-8s Opcode: %-8s Operand: %-8s Obj Code: %02X\n",
                    lineCount, address, label, opcode, operand, objcode & 0xFF);
-            fprintf(listing, "%-6s  %-8s %-8s  %-8s %X\n",
+            fprintf(listing, "%-6s  %-8s %-8s  %-8s %02X\n",
                     address, label, opcode, operand, objcode & 0xFF);
         }
         else if(strcmp(opcode, "RESW") == 0 || strcmp(opcode, "RESB") == 0 || 
@@ -225,7 +255,7 @@ void pass2(char* intermediate) {
 
     // Write final record if any remains
     if (recordLength > 0) {
-        fprintf(object, "T%06X%02X%s\n", currentTextStart, recordLength, recordBuffer);
+        fprintf(object, "T%06X^%02X%s\n", currentTextStart, recordLength, recordBuffer);
     }
 
     // Write end record
@@ -233,7 +263,7 @@ void pass2(char* intermediate) {
 
     // Go back and write the header
     fseek(object, headerPos, SEEK_SET);
-    fprintf(object, "H%-6s%06X%06X", programName, startingAddr, endingAddr - startingAddr);
+    fprintf(object, "H^%-6s%06X^%06X", programName, startingAddr, endingAddr - startingAddr);
 
     // Clean up
     fclose(file);
@@ -243,7 +273,4 @@ void pass2(char* intermediate) {
     
 }
 
-int main() {
 
-    pass2("intermediate.txt");
-    }

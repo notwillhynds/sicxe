@@ -2,48 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include "tables.h"
+#include "symtab.h"
 
 #define MAX_LINE_LENGTH 100
 #define MAX_LABEL_LENGTH 20
 #define MAX_OPCODE_LENGTH 10
 #define MAX_OPERAND_LENGTH 20
-#define MAX_SYMBOLS 100
-
-// Symbol table struct
-struct Symbol {
-    char label[MAX_LABEL_LENGTH];
-    int address;
-};
-
-// Global symbol table
-struct Symbol SYMTAB[MAX_SYMBOLS];
-int symCount = 0;
-
-int searchSymTab (const char *label) {
-    for(int i = 0; i < symCount; i++) {
-        if(strcmp(SYMTAB[i].label, label) == 0) {
-        return i;
-        }
-}
-return -1;
-}
-
-// Function to add symbol to SYMTAB
-int addSymbol(const char *label, int address) {
-    if (searchSymTab(label) != -1) {
-        printf("Error Duplicate Symbol Found '%s'\n",label);
-        return 0;
-        }
-    else if(symCount < MAX_SYMBOLS && strlen(label) > 0 ) {
-        strcpy(SYMTAB[symCount].label, label);
-        SYMTAB[symCount].address = address;
-        symCount++;
-        printf("Added symbol: %s at address: %04X\n", label, address);
-        return 1;
-    }
-
-    return 0;
-}
 
 
 
@@ -199,8 +163,5 @@ void pass1(const char *inputFile, const char *intermediateFile) {
     fclose(intermediate);
 }
 
-int main() {
-    pass1("sicprog.txt", "intermediate.txt");
-    return 0;
-}
+
 
