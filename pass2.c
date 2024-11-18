@@ -25,7 +25,7 @@ void pass2(char* intermediate) {
     char lineNum[50], address[50], label[50], opcode[50], operand[50];
     unsigned int objcode = 0; //objectcode for listing file
     char* objectFCode = NULL;  //object code for obbjectfile
-    int objCodeSize = 0;        //for dynmically allocated array
+
     int objCodeCapacity = 500;  //
     int lineCount = 0;
     SYMBOL symtab[MAX_SYMBOLS];

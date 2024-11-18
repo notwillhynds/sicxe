@@ -120,10 +120,17 @@ void pass1(const char *inputFile, const char *intermediateFile) {
                 addSymbol(label, LOCCTR);
             }
 
-            // Update LOCCTR based on instruction type
-            if(searchOpTab(opcode) == 3) {
-                printf("Opcode %s Found at: %04X\n", opcode, LOCCTR);
-                LOCCTR += 3;  // Standard instruction length
+            if(opcode[0] == '+') {
+                memmove(opcode, opcode + 1, strlen(opcode));
+                if(searchOpTab(opcode) > 0) {
+                    LOCCTR += 4;
+                }
+            } else if(searchOpTab(opcode) == 1) {
+                LOCCTR += 1;
+            } else if(searchOpTab(opcode) == 2) {
+                LOCCTR += 2;
+            } else if(searchOpTab(opcode) == 3) {
+                LOCCTR += 3;
             }
             else if (strcmp(opcode, "WORD") == 0) {
                 LOCCTR += 3;
