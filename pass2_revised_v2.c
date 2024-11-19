@@ -9,12 +9,9 @@
 #define MAX_LINE_LENGTH 1000
 #define MARKER '|'
 #define MAX_TEXT_RECORD_LENGTH 30
-#define MAX_OPCODE_LENGTH 50
-#define SIC 0
-#define SICXE 1
 
 //Tokenize Intermediate File Lines
-void pass2(const char* intermediate, int format) {
+void pass2_revised_v2(char* intermediate) {
     FILE* file = fopen(intermediate, "r");
     FILE* listing = fopen("listing.txt", "w");
     FILE* object = fopen("objectcode.txt", "w");
@@ -22,8 +19,6 @@ void pass2(const char* intermediate, int format) {
         printf("Error opening file\n");
         return;
     }
-
-    printf("Processing as %s\n", format == SIC ? "SIC" : "SIC/XE");
 
     char line[MAX_LINE_LENGTH];
     char programName[7] = "";
@@ -80,7 +75,7 @@ void pass2(const char* intermediate, int format) {
                address,   // "1000"
                label,     // "COPY"
                opcode,    // "START"
-               operand   // "1000"
+               operand    // "1000"
         );
         //Skip Comments
         if (address[0] == '.' ) continue;
@@ -123,123 +118,72 @@ void pass2(const char* intermediate, int format) {
         int codeLength = 0;
 
          //Generate Object Codes
-        if (format == SIC) {
-            // Handle SIC format instructions
-            if(strcmp(opcode, "RSUB") == 0) {
-                objcode = 0x4C0000;
-                codeLength = 3;
+        if(strcmp(opcode, "RSUB") == 0) {
+            objcode = 0x4C0000;
+            codeLength = 3;
+        }
+	else if(opcode[0] == '+') {
+            unsigned int opcodeValue = getOpcode(opcode + 1);
+            bool immediate = (operand[0] == '#');
+            bool indirect = (operand[0] == '@');
+            char symbol[50];
+            strcpy(symbol, operand + (immediate || indirect ? 1 : 0));
+
+            unsigned int symbolAddr = getSymbolAddress(symbol, symtab, &symCount);
+            if (symbolAddr == (unsigned int)-1) {
+                printf("Undefined symbol: %s\n", symbol);
+                exit(1);
             }
-            else if(searchOpTab(opcode) == 3) {
-                // Standard SIC format (no extended addressing)
-                unsigned int opcodeValue = getOpcode(opcode);
-                char symbol[50];
-                bool indexed = false;
 
-                // Check for indexed addressing ',X'
-                char *comma = strchr(operand, ',');
-                if(comma != NULL) {
-                    int len = comma - operand;
-                    strncpy(symbol, operand, len);
-                    symbol[len] = '\0';
-                    indexed = true;
-                }
-                else {
-                    strcpy(symbol, operand);
-                }
+            unsigned int niBits = immediate ? 0x01 : (indirect ? 0x02 : 0x03);
+            objcode = (opcodeValue << 24) | (niBits << 22) | symbolAddr;
+            codeLength = 4;
+	}
+        else if(searchOpTab(opcode) == 3) { // Assuming searchOpTab returns format type
+            unsigned int opcodeValue = getOpcode(opcode);
+            char symbol[50];
+            bool immediate = (operand[0] == '#');
+            bool indirect = (operand[0] == '@');
+            bool indexed = false;
 
-                unsigned int symbolAddr = getSymbolAddress(symbol, symtab, &symCount);
-                if(symbolAddr == (unsigned int)-1) {
-                    printf("Undefined symbol: %s\n", symbol);
+            // Check for indexed addressing ',X'
+            char *comma = strchr(operand, ',');
+            if(comma != NULL) {
+                // Extract symbol name before ','
+                int len = comma - operand;
+                if(len >= sizeof(symbol)) {
+                    printf("Symbol name too long: %s\n", operand);
                     exit(1);
                 }
+                strncpy(symbol, operand, len);
+                symbol[len] = '\0';
+                indexed = true;
+            }
+            else {
+                strcpy(symbol, operand);
+            }
 
-                if(indexed) {
-                    symbolAddr |= 0x8000; // Set indexed bit
-                }
+            unsigned int symbolAddr = getSymbolAddress(symbol, symtab, &symCount);
+            if(symbolAddr == (unsigned int)-1) { // Assuming getSymbolAddress returns -1 for undefined symbols
+                printf("Undefined symbol: %s\n", symbol);
+                // Handle undefined symbol appropriately (e.g., exit or assign a default value)
+                exit(1);
+            }
 
-                objcode = (opcodeValue << 16) | (symbolAddr & 0xFFFF);
-                codeLength = 3;
+            if(indexed) {
+                 symbolAddr = 0x8000; // Set the indexed addressing bit (bit 15)
+            }
+
+            unsigned int niBits = immediate ? 0x01 : (indirect ? 0x02 : 0x03);
+            unsigned int xbpeBits = (indexed ? 0x08 : 0) | 0x02; // PC-relative
+
+            unsigned int displacement = symbolAddr - ((int)strtol(address, NULL, 16) + 3);
+            if (displacement < -2048 || displacement > 2047) {
+                printf("Displacement out of range: %d\n", displacement);
+                exit(1);
             }
         }
-        else if (format == SICXE) {
-            // Handle SIC/XE format instructions
-            if(opcode[0] == '+') {
-                // Format 4 instruction
-                codeLength = 4;
-                char baseOpcode[MAX_OPCODE_LENGTH];
-                strcpy(baseOpcode, opcode + 1);
-                unsigned int opcodeValue = getOpcode(baseOpcode);
-                
-                // Set n and i bits for simple addressing (both 1)
-                opcodeValue |= 0x3;  // Set ni bits to 11
-                
-                // Set e bit for format 4
-                objcode = (opcodeValue << 24) | 0x100000;
-                
-                // Handle the address part
-                unsigned int symbolAddr = getSymbolAddress(operand, symtab, &symCount);
-                if(symbolAddr == (unsigned int)-1) {
-                    printf("Undefined symbol: %s\n", operand);
-                    exit(1);
-                }
-                
-                objcode |= symbolAddr & 0xFFFFF; // Use 20 bits for address in format 4
-            }
-            else if(searchOpTab(opcode) == 2) {
-                // Format 2 instruction
-                codeLength = 2;
-                unsigned int opcodeValue = getOpcode(opcode);
-                objcode = opcodeValue << 8;
-                
-                // Parse register operands
-                char reg1[10], reg2[10];
-                if(strchr(operand, ',')) {
-                    sscanf(operand, "%[^,],%s", reg1, reg2);
-                    int r1 = getRegisterNum(&reg1[0]);  // Get first character as register name
-                    int r2 = getRegisterNum(&reg2[0]);  // Get first character as register name
-                    if(r1 >= 0 && r2 >= 0) {
-                        objcode |= (r1 << 4) | r2;
-                    } else {
-                        printf("Error: Invalid register(s) in instruction\n");
-                    }
-                } else {
-                    int r1 = getRegisterNum(&operand[0]);
-                    if(r1 >= 0) {
-                        objcode |= (r1 << 4);
-                    } else {
-                        printf("Error: Invalid register in instruction\n");
-                    }
-                }
-            }
-            else if(searchOpTab(opcode) == 3) {
-                // Format 3 instruction
-                codeLength = 3;
-                unsigned int opcodeValue = getOpcode(opcode);
-                
-                // Set n and i bits for simple addressing (both 1)
-                opcodeValue |= 0x3;  // Set ni bits to 11
-                
-                objcode = opcodeValue << 16;
-                
-                // Handle the address part
-                if(strcmp(opcode, "RSUB") == 0) {
-                    // RSUB doesn't need address bits
-                    objcode |= 0;
-                } else {
-                    unsigned int symbolAddr = getSymbolAddress(operand, symtab, &symCount);
-                    if(symbolAddr == (unsigned int)-1) {
-                        printf("Undefined symbol: %s\n", operand);
-                        exit(1);
-                    }
-                    
-                    // For now, use direct addressing (will add PC-relative later)
-                    objcode |= symbolAddr & 0xFFF; // Use 12 bits for address in format 3
-                }
-            }
-        }
-
-        // Handle BYTE, WORD, and other directives same as before
-        if(strcmp(opcode, "BYTE") == 0) {
+        else if(strcmp(opcode, "BYTE") == 0) {
             if(operand[0] == 'C') {
                 objcode = 0;
                 for(int i = 2; operand[i] != '\''; i++) {
@@ -271,7 +215,7 @@ void pass2(const char* intermediate, int format) {
             currentTextStart = (int)strtol(address, NULL, 16);
         }
 
-        // Add current object code to record
+	// Add current object code to record
         if (recordLength == 0) {
             currentTextStart = (int)strtol(address, NULL, 16);
             if(strcmp(opcode, "BYTE") == 0 && operand[0] == 'X') {
@@ -330,9 +274,7 @@ void pass2(const char* intermediate, int format) {
                     address, label, opcode, operand, objcode);
         }
 
-
-
-    }
+        
 
     // Write final record if any remains
     if (recordLength > 0) {
@@ -353,6 +295,6 @@ void pass2(const char* intermediate, int format) {
 
     
 }
-
+}
 
 
